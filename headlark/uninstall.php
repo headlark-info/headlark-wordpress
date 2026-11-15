@@ -17,8 +17,8 @@ function headlark_uninstall_site() {
 }
 
 if ( is_multisite() ) {
-	foreach ( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $site_id ) {
-		switch_to_blog( $site_id );
+	foreach ( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $headlark_site_id ) {
+		switch_to_blog( $headlark_site_id );
 		headlark_uninstall_site();
 		restore_current_blog();
 	}

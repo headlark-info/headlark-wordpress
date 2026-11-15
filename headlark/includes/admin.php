@@ -37,7 +37,7 @@ function headlark_save() {
 	$types    = isset( $_POST['post_types'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['post_types'] ) ) : array();
 	$public   = get_post_types( array( 'public' => true ) );
 	$settings = array(
-		'api'        => headlark_sanitize_api( isset( $_POST['api'] ) ? wp_unslash( $_POST['api'] ) : '' ),
+		'api'        => headlark_sanitize_api( isset( $_POST['api'] ) ? sanitize_text_field( wp_unslash( $_POST['api'] ) ) : '' ),
 		'enabled'    => ! empty( $_POST['enabled'] ),
 		'post_types' => array_values( array_intersect( $types, array_keys( $public ) ) ),
 		'seo_mode'   => isset( $_POST['seo_mode'] ) && 'off' === $_POST['seo_mode'] ? 'off' : 'gaps',
@@ -136,9 +136,8 @@ function headlark_admin_notices() {
 	if ( $seo && headlark_settings()['seo_ack'] !== $seo ) {
 		echo '<div class="notice notice-warning"><p>' . esc_html(
 			sprintf(
-				/* translators: %s: name of the other SEO plugin. */
-				__( 'Headlark found %s. Headlark now adds only the tags %s does not print (usually structured data, X cards and alt text), so nothing is duplicated. You can switch Headlark\'s head tags off instead.', 'headlark' ),
-				$seo,
+				/* translators: %1$s: name of the other SEO plugin. */
+				__( 'Headlark found %1$s. Headlark now adds only the tags %1$s does not print (usually structured data, X cards and alt text), so nothing is duplicated. You can switch Headlark\'s head tags off instead.', 'headlark' ),
 				$seo
 			)
 		) . ' <a href="' . esc_url( headlark_settings_url() ) . '">' . esc_html__( 'Choose in Settings → Headlark', 'headlark' ) . '</a></p></div>';

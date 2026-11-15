@@ -79,7 +79,7 @@ function headlark_is_raw() {
 function headlark_raw_headers() {
 	if ( headlark_is_raw() ) {
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
+			define( 'DONOTCACHEPAGE', true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- the constant caching plugins read.
 		}
 		nocache_headers();
 	}
@@ -126,7 +126,7 @@ function headlark_build_html( $post, $url ) {
 	$GLOBALS['post']         = $post;
 	setup_postdata( $post );
 	$title   = get_the_title( $post );
-	$content = apply_filters( 'the_content', $post->post_content );
+	$content = apply_filters( 'the_content', $post->post_content ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook.
 	$image   = get_the_post_thumbnail( $post, 'large' );
 	$GLOBALS['post'] = $previous;
 	wp_reset_postdata();
@@ -323,7 +323,7 @@ function headlark_purge( $post_id ) {
 	if ( function_exists( 'wp_cache_post_change' ) ) {
 		wp_cache_post_change( $post_id );
 	}
-	do_action( 'litespeed_purge_post', $post_id );
+	do_action( 'litespeed_purge_post', $post_id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- LiteSpeed Cache's purge hook.
 	if ( isset( $GLOBALS['cloudflareHooks'] ) && is_object( $GLOBALS['cloudflareHooks'] ) && method_exists( $GLOBALS['cloudflareHooks'], 'purgeCacheByRelevantURLs' ) ) {
 		$GLOBALS['cloudflareHooks']->purgeCacheByRelevantURLs( $post_id );
 	}
@@ -368,6 +368,7 @@ function headlark_backfill_running( $state ) {
 
 // One run at a time, so WP-Cron and the settings page never send a post twice.
 // A run that died holding the lock frees it after 5 minutes.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- an atomic lock row; caching it would defeat the lock.
 function headlark_lock() {
 	global $wpdb;
 	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = 'headlark_lock' AND option_value < %d", time() - 300 ) );
@@ -378,6 +379,7 @@ function headlark_unlock() {
 	global $wpdb;
 	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name = 'headlark_lock'" );
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery
 
 function headlark_run_backfill( $budget = HEADLARK_BUDGET ) {
 	$state = headlark_backfill_state();
@@ -413,10 +415,11 @@ function headlark_backfill_batch( $state, $budget ) {
 		return $state;
 	}
 	$in  = implode( ',', array_fill( 0, count( $types ), '%s' ) );
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQLPlaceholders, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $in is a list of %s placeholders, one per post type; a batch cursor, not worth caching.
 	$ids = $wpdb->get_col(
-		// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $in is a list of %s placeholders.
 		$wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE ID > %d AND post_status = 'publish' AND post_password = '' AND post_type IN ($in) ORDER BY ID ASC LIMIT %d", array_merge( array( $state['cursor'] ), $types, array( HEADLARK_BATCH ) ) )
 	);
+	// phpcs:enable
 	$start = time();
 	foreach ( $ids as $i => $id ) {
 		if ( $i > 0 && time() - $start >= $budget ) {
